@@ -1,4 +1,6 @@
 import mongoose, { Schema } from "mongoose";
+import bcrypt from "bcrypt";
+import jsonWebToken from "jsonwebtoken";
 
 const userSchema = new Schema(
   {
@@ -17,7 +19,7 @@ const userSchema = new Schema(
       lowercase: true,
       trim: true,
     },
-    fullname: {
+    fullName: {
       type: String,
       required: true,
       trim: true,
@@ -46,5 +48,45 @@ const userSchema = new Schema(
   },
   { timestamps: true }
 );
+
+//WE ARE USING NORMAL FUNCTION INSTEAD OF ARRORW FUNCTION BECAUSE OF - normal function have their own this context
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  // if password changed then do hash
+  this.password = await bcrypt.hash(this.password, 10);
+  next();
+});
+
+//schema.methods is how you define custom instance methods on Mongoose documents
+userSchema.methods.isPasswordCorrect = async function (password) {
+  return await bcrypt.compare(password, this.password);
+};
+
+userSchema.methods.generateAccessToken = async function () {
+  return await jsonWebToken.sign(
+    {
+      _id: this._id,
+      email: this.email,
+      username: this.username,
+      fullName: this.fullName,
+    },
+    process.env.ACCESS_TOKEN_SECRET,
+    {
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+    }
+  );
+};
+
+userSchema.methods.generateRefreshToken = async function () {
+  return await jsonWebToken.sign(
+    {
+      _id: this._id,
+    },
+    process.env.REFRESH_TOKEN_SECRET,
+    {
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+    }
+  );
+};
 
 export const User = mongoose.model("User", userSchema);
