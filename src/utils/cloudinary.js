@@ -1,8 +1,6 @@
-// file uploader
 import { v2 as cloudinary } from "cloudinary";
-import fs from "fs"; //node file system
+import fs from "fs"; // Node.js file system module
 
-// Configuration
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -11,17 +9,27 @@ cloudinary.config({
 
 const uploadOnCloudinary = async (localFilePath) => {
   try {
-    if (!localFilePath) return console.error("file path doesn't found");
+    if (!localFilePath) return console.error("File path not found");
+
     const response = await cloudinary.uploader.upload(localFilePath, {
       resource_type: "auto",
     });
-    //file has been uploaded successfully
-    console.log("file is uploaded on cloudinary:", response.url);
+
+    // ✅ Cloud pe successfully upload hone ke baad local file delete karo
+    // fs.unlinkSync(localFilePath);
+
+    console.log("File uploaded to Cloudinary:", response.url);
     return response;
   } catch (error) {
-    fs.unlinkSync(localFilePath); //remove the locally saved temporary file in the cloudinary as the upload operation got failed
+    fs.unlinkSync(localFilePath);
     return null;
   }
 };
 
 export { uploadOnCloudinary };
+
+/*
+  Humne yeh utility isliye banayi hai kyunki hume images ya videos jaise media files
+  ko kisi cloud storage mein store karna hota hai.
+  Is case mein hum Cloudinary ka use kar rahe hain taaki media files safely upload ho jayein.
+*/
