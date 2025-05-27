@@ -7,6 +7,8 @@ class ApiResponse {
   }
 }
 
+export { ApiResponse };
+
 /*
   Purpose:
   - This class helps in creating consistent and structured API responses.
