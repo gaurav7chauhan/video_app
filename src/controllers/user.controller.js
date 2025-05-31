@@ -11,7 +11,8 @@ const generateAccessAndRefreshTokens = async (userId) => {
     const refreshToken = await user.generateRefreshToken();
 
     user.refreshToken = refreshToken;
-
+    
+    // validateBeforeSave: false lagate hain taaki refresh token save karte waqt baki validations na rukaye.
     await user.save({ validateBeforeSave: false });
 
     return { accessToken, refreshToken };
@@ -79,15 +80,14 @@ const registerUser = asyncHandler(async (req, res) => {
     coverImage = await uploadOnCloudinary(coverImageLocalPath);
   }
 
-  console.log("avatar:", avatar);
-  console.log("coverImage:", coverImage);
+  // console.log("avatar:", avatar);
+  // console.log("coverImage:", coverImage);
 
   if (!avatar) {
     throw new ApiError(400, "Avatar file is required 2.");
   }
 
   //performing CRUD operations
-
   const user = await User.create({
     fullName,
     email,
@@ -131,7 +131,7 @@ const loginUser = asyncHandler(async (req, res) => {
   });
 
   if (!myUser) {
-    throw new ApiError(404, "User doesn't exist.");
+    throw new ApiError(404, "User doesn't exist. Please register yourself");
   }
 
   const isPasswordValid = await myUser.isPasswordCorrect(password);
@@ -191,5 +191,6 @@ const logoutUser = asyncHandler(async (req, res) => {
     .clearCookie("refreshToken", options)
     .json(new ApiResponse(200, {}, "User logged Out"));
 });
+
 
 export { registerUser, loginUser, logoutUser };

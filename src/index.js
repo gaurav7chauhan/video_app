@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import connectDB from "./db/index.js";
 import { app } from "./app.js";
 
-dotenv.config({ path: "./env" });
+dotenv.config({ path: "./.env" });
 
 connectDB()
 .then((response) => {
@@ -19,8 +19,8 @@ connectDB()
 })
 
 
-
-
+// Ye file tumhare project ka starting point hai — ye .env load karta hai, 
+// MongoDB se connect karta hai, aur Express server ko start karta hai.
 
 
 

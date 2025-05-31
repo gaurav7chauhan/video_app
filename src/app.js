@@ -2,6 +2,9 @@ import e from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
+// Ye setup Express server ko secure, organized aur frontend-compatible banata hai, 
+// jisme JSON parsing, cookie handling, CORS config, and static file serving included hai.
+
 const app = e();
 
 const dataLimit = "10kb";

@@ -49,7 +49,7 @@ const userSchema = new Schema(
   { timestamps: true }
 );
 
-//WE ARE USING NORMAL FUNCTION INSTEAD OF ARRORW FUNCTION BECAUSE OF - normal function have their own this context
+//WE ARE USING NORMAL FUNCTION INSTEAD OF ARRORW FUNCTION BECAUSE OF - normal function have their own "this" context
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   // if password changed then do hash
@@ -59,6 +59,7 @@ userSchema.pre("save", async function (next) {
 
 //schema.methods is how you define custom instance methods on Mongoose documents
 userSchema.methods.isPasswordCorrect = async function (password) {
+  // use in login
   return await bcrypt.compare(password, this.password);
 };
 
