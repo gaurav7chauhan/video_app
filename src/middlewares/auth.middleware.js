@@ -1,7 +1,7 @@
-import { User } from "../models/user.model";
-import { ApiError } from "../utils/ApiError";
-import { asyncHandler } from "../utils/asyncHandler";
-import { jsonWebToken } from "jsonwebtoken";
+import { User } from "../models/user.model.js";
+import { ApiError } from "../utils/ApiError.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import jsonWebToken from "jsonwebtoken";
 
 // we use Nullish Coalescing (??) inplace of OR (||)
 // instead of empty res we use _ in place of res. Its completely your choice
