@@ -45,8 +45,12 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "All fields are required");
   }
 
-  if (!email.includes("@")) {
+  if (!email.includes("@gmail.com")) {
     throw new ApiError(400, "Please verify email");
+  }
+
+  if (password.length < 6 || password.length > 10 || password.includes(" ")) {
+    throw new ApiError(400, "Password must be between 6 to 10 characters not include spaces.");
   }
 
   const existedUser = await User.findOne({
@@ -217,35 +221,39 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       incomingRefreshToken,
       process.env.REFRESH_TOKEN_SECRET
     );
-  
+
     const user = await User.findById(decodedToken._id);
-  
+
     if (!user) {
       throw new ApiError(401, "Invalid refresh token");
     }
-  
+
     if (incomingRefreshToken !== user?.refreshToken) {
       throw new ApiError(401, "Refresh token is expired or used");
     }
-  
+
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
       user._id
     );
-  
+
     const options = {
       httpOnly: true,
       secure: true,
     };
-  
+
     return res
       .status(200)
       .cookie("accessToken", accessToken, options)
       .cookie("refreshToken", refreshToken, options)
       .json(
-        new ApiResponse(200, {accessToken, refreshToken}, "Access token refreshed")
-      )
+        new ApiResponse(
+          200,
+          { accessToken, refreshToken },
+          "Access token refreshed"
+        )
+      );
   } catch (error) {
-    throw new ApiError(401, error?.message || "Invalid refresh token")
+    throw new ApiError(401, error?.message || "Invalid refresh token");
   }
 });
 
