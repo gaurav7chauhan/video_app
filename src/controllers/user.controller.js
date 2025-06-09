@@ -14,7 +14,8 @@ const generateAccessAndRefreshTokens = async (userId) => {
 
     user.refreshToken = refreshToken;
 
-    // validateBeforeSave: false lagate hain taaki refresh token save karte waqt baki validations na rukaye.
+    // validateBeforeSave: false lagate hain taaki refresh token save karte
+    //                     waqt baki validations na run ho kyuki is wqt yoh empty hogi toh error throw karegi.
     await user.save({ validateBeforeSave: false });
 
     return { accessToken, refreshToken };
@@ -50,7 +51,7 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Please verify email");
   }
 
-  if (password.length < 6 || password.length > 10 || password.includes(" ")) {
+  if (password.length < 6 || password.length > 20 || password.includes(" ")) {
     throw new ApiError(
       400,
       "Password must be between 6 to 10 characters not include spaces."
@@ -61,10 +62,8 @@ const registerUser = asyncHandler(async (req, res) => {
     $or: [{ username }, { email }],
   });
 
-  if (existedUser?.username) {
-    throw new ApiError(409, "Username already exists.");
-  } else if (existedUser?.email) {
-    throw new ApiError(409, "Email already exists.");
+  if (existedUser) {
+    throw new ApiError(409, "Username or email already exists.");
   }
 
   // console.log(req.files);
@@ -78,6 +77,8 @@ const registerUser = asyncHandler(async (req, res) => {
     avatarLocalPath = req.files.avatar[0].path;
   }
 
+  if (!avatarLocalPath) throw new ApiError(400, "Avatar file is required 1.");
+
   let coverImageLocalPath;
   if (
     req.files &&
@@ -87,9 +88,11 @@ const registerUser = asyncHandler(async (req, res) => {
     coverImageLocalPath = req.files.coverImage[0].path;
   }
 
-  if (!avatarLocalPath) throw new ApiError(400, "Avatar file is required 1.");
-
   const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+  if (!avatar) {
+    throw new ApiError(400, "Avatar file is required 2.");
+  }
 
   let coverImage;
   if (coverImageLocalPath) {
@@ -98,10 +101,6 @@ const registerUser = asyncHandler(async (req, res) => {
 
   // console.log("avatar:", avatar);
   // console.log("coverImage:", coverImage);
-
-  if (!avatar) {
-    throw new ApiError(400, "Avatar file is required 2.");
-  }
 
   //performing CRUD operations
   const user = await User.create({
@@ -138,7 +137,7 @@ const loginUser = asyncHandler(async (req, res) => {
   // and also provide registration option below
   const { username, email, password } = req.body;
 
-  if (!username && !email) {
+  if (!username?.trim() && !email?.trim()) {
     throw new ApiError(400, "username or email is required.");
   }
 
@@ -187,8 +186,8 @@ const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user._id,
     {
-      $set: {
-        refreshToken: undefined,
+      $unset: {
+        refreshToken: 1, // this removes the field from document
       },
     },
     {
@@ -225,6 +224,10 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       incomingRefreshToken,
       process.env.REFRESH_TOKEN_SECRET
     );
+
+    if (!decodedToken) {
+      throw new ApiError(401, "Invalid refresh token 1");
+    }
 
     const user = await User.findById(decodedToken._id);
 
@@ -293,7 +296,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
   const { email, fullName } = req.body;
 
   if (!fullName || !email) {
-    throw new ApiError(400, "All fields are required");
+    throw new ApiError(400, "All fields are required!");
   }
 
   const user = await User.findByIdAndUpdate(
@@ -318,7 +321,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 
   const avatar = await uploadOnCloudinary(avatarLocalPath);
 
-  if (!avatar.url) {
+  if (!avatar?.url) {
     throw new ApiError(400, "Error while uploading avatar");
   }
 
@@ -402,23 +405,25 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         },
         isSubscribed: {
           $cond: {
+            // if: {
+            //   $in: [req.user?._id, "$subscribers.subscriber"],
+            // },
+            // then: true,
+            // else: false,
             if: {
-              $in: [req.user?._id, "$subscribers.subscriber"],
+              $in: [
+                req.user._id,
+                {
+                  $map: {
+                    input: "$subscribers",
+                    as: "sub",
+                    in: "$$sub.subscriber",
+                  },
+                },
+              ],
             },
             then: true,
-            else: false,
-            // if: {
-            //   $in: [
-            //     req.user._id,
-            //     {
-            //       $map: {
-            //         input: "$subscribers",
-            //         as: "sub",
-            //         in: "$$sub.subscriber",
-            //       },
-            //     },
-            //   ],
-            // }, // after this is your choice to use then, else method for condition use
+            else: false, // after this is your choice to use then, else method for condition use
           },
         },
       },
@@ -492,10 +497,15 @@ const getWatchHistory = asyncHandler(async (req, res) => {
     },
   ]);
 
-  return res.status(200)
-  .json(
-    new ApiResponse(200, user[0].watchHistory, "watch history fetched successfully")
-  )
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        user[0].watchHistory,
+        "watch history fetched successfully"
+      )
+    );
 });
 
 export {

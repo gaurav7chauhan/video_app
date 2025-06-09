@@ -23,6 +23,10 @@ export const verifyJWT = asyncHandler(async (req, _, next) => {
       process.env.ACCESS_TOKEN_SECRET
     );
 
+    if (!decodedToken) {
+      throw new ApiError(401, "Invalid Access Token");
+    }
+
     // remove the sensitive info
     const user = await User.findById(decodedToken?._id).select(
       "-password -refreshToken"
