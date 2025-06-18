@@ -14,16 +14,125 @@ const getAllVideos = asyncHandler(async (req, res) => {
 const publishAVideo = asyncHandler(async (req, res) => {
   const { title, description } = req.body;
   // TODO: get video, upload to cloudinary, create video
+  if (!title || !description) {
+    throw new ApiError(400, "Please provide title and decription");
+  }
+
+  console.log(req.files);
+
+  let videoFileLocalPath;
+  if (
+    req.files &&
+    Array.isArray(req.files.videoFile) &&
+    req.files.videoFile.length > 0
+  ) {
+    videoFileLocalPath = req.files.videoFile[0].path;
+  }
+
+  if (!videoFileLocalPath) {
+    throw new ApiError(400, "Video is not found");
+  }
+
+  const videoFile = await uploadOnCloudinary(videoFileLocalPath);
+
+  if (!videoFile) {
+    throw new ApiError(400, "Video is not uploaded");
+  }
+
+  let thumbnailFileLocalPath;
+  if (
+    req.files &&
+    Array.isArray(req.files.thumbnail) &&
+    req.files.thumbnail.length > 0
+  ) {
+    thumbnailFileLocalPath = req.files.thumbnail[0].path;
+  }
+
+  if (!thumbnailFileLocalPath) {
+    throw new ApiError(400, "thumbnail is not found");
+  }
+
+  const thumbnailFile = await uploadOnCloudinary(thumbnailFileLocalPath);
+
+  if (!thumbnailFile) {
+    throw new ApiError(400, "thumbnail is not uploaded");
+  }
+
+  const video = await Video.create({
+    videoFile: videoFile.url,
+    thumbnail: thumbnailFile.url,
+    title: title,
+    description: description,
+    duration: videoFile.duration,
+    owner: req.user._id,
+  });
+
+  const videoDataSendToUser = await Video.findById(video._id).select(
+    "-owner -duration"
+  );
+
+  return res
+    .status(201)
+    .json(
+      new ApiResponse(200, videoDataSendToUser, "Video successfully uploaded")
+    );
 });
 
 const getVideoById = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   //TODO: get video by id
+  if (!videoId) {
+    throw new ApiError(404, "Video is not found 1");
+  }
+  const getVideo = await Video.findById(videoId);
+
+  if (!getVideo) {
+    throw new ApiError(400, "Video not found 2");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, getVideo, "Video fetched successfully"));
 });
 
 const updateVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+  const { title, description } = req.body;
   //TODO: update video details like title, description, thumbnail
+  if (!videoId) throw new ApiError(404, "Video is not found");
+
+  if (!title || !description) {
+    throw new ApiError(400, "Please provide title and description");
+  }
+
+  let thumbnailLocalPath;
+  if (req.file) thumbnailLocalPath = req.file.path;
+
+  if (!thumbnailLocalPath) {
+    throw new ApiError(400, "thumbnail file is requierd");
+  }
+
+  const thumbnailFile = await uploadOnCloudinary(thumbnailLocalPath);
+
+  if (!thumbnailFile) throw new ApiError(400, "thumbnail file is not uploaded");
+
+  const updatedVideo = await Video.findByIdAndUpdate(
+    videoId,
+    {
+      $set: {
+        title,
+        description,
+        thumbnail: thumbnailFile.url,
+      },
+    },
+    {
+      new: true,
+    }
+  ).select("title description thumbnail");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedVideo, "Video is successfully updated"));
 });
 
 const deleteVideo = asyncHandler(async (req, res) => {
