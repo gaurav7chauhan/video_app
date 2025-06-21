@@ -9,6 +9,36 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 const getAllVideos = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
   //TODO: get all videos based on query, sort, pagination
+  if (!query && !userId) throw new ApiError(404, "Please send query or userId");
+
+  const filter = {};
+
+  if (userId) filter.owner = userId;
+
+  if (query) {
+    filter.$or = [
+      { title: { $regex: query, $options: "i" } },
+      { description: { $regex: query, $options: "i" } },
+    ];
+  }
+
+  const skip = (Number(page) - 1) * Number(limit);
+
+  const sortOption = {};
+  if (sortBy) {
+    sortOption[sortBy] = sortType === "asc" ? 1 : -1;
+  } else {
+    sortOption.createdAt = -1;
+  }
+
+  const filterTheQuery = await Video.find(filter)
+    .skip(skip)
+    .limit(Number(limit))
+    .sort(sortOption);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, filterTheQuery, "filter data fetched"));
 });
 
 const publishAVideo = asyncHandler(async (req, res) => {
@@ -138,10 +168,45 @@ const updateVideo = asyncHandler(async (req, res) => {
 const deleteVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   //TODO: delete video
+  if (!videoId) throw new ApiError(404, "Video ID is required");
+
+  const video = await Video.findByIdAndDelete(videoId);
+
+  if (!video) throw new ApiError(404, "video is not found");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Video deleted successfully"));
 });
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+
+  if (!videoId) throw new ApiError(404, "Video ID is required");
+
+  const findVideo = await Video.findByIdAndUpdate(
+    videoId,
+    {
+      $bit: {
+        isPublished: { xor: 1 },
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  if (!findVideo) throw new ApiError(404, "Video is not found");
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        findVideo,
+        `Video is ${findVideo.isPublished ? "Published" : "unpublished"} successfully`
+      )
+    );
 });
 
 export {
