@@ -10,7 +10,7 @@ const subscriptionSchema = new Schema(
     // Ye us object ya entity ki baat kar raha hai jisko Subscriber subscribe kar raha hai.
     channel: {
       type: Schema.Types.ObjectId, // one to whom "Subscriber" is subscribing
-      ref: "User",  
+      ref: "User",
     },
   },
   { timestamps: true }
