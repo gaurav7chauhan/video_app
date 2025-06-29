@@ -15,12 +15,15 @@ const getChannelStats = asyncHandler(async (req, res) => {
   const totalSubscriberCount = await Subscription.countDocuments({
     channel: loggedInUser,
   });
+
+  console.log(totalSubscriberCount);
   if (!totalSubscriberCount) {
     throw new ApiError(400, "Subscribers not found");
   }
 
   //VideosCount
   const totalVideosCount = await Video.countDocuments({ owner: loggedInUser });
+  
   if (!totalVideosCount) {
     throw new ApiError(400, "Videos not found");
   }
@@ -30,6 +33,7 @@ const getChannelStats = asyncHandler(async (req, res) => {
   const videoIds = userVideos.map((video) => video._id);
 
   const totalLikes = await Like.countDocuments({ video: { $in: videoIds } });
+  
   if (!totalLikes) {
     throw new ApiError(400, "Likes not count");
   }

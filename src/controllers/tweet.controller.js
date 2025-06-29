@@ -24,7 +24,9 @@ const createTweet = asyncHandler(async (req, res) => {
 const getUserTweets = asyncHandler(async (req, res) => {
   // TODO: get user tweets
   const { userId } = req.params;
-  const userTweets = await Tweet.findById(userId).select("content");
+  if (!userId) throw new ApiError(400, "User ID is required");
+
+  const userTweets = await Tweet.find({ owner: userId }).select("content");
 
   if (!userTweets || userTweets.length === 0) {
     throw new ApiError(404, "User tweets not found");
@@ -46,11 +48,13 @@ const updateTweet = asyncHandler(async (req, res) => {
     { _id: tweetId, owner: req.user._id },
     { $set: { content: updatedTweet } },
     { new: true }
-  );
+  ).select("content");
 
   if (!tweet) throw new ApiError(404, "Tweet not found");
 
-  return res.status(200).json(new ApiResponse(200));
+  return res
+    .status(200)
+    .json(new ApiResponse(200, tweet, "Tweet updated successfully"));
 });
 
 const deleteTweet = asyncHandler(async (req, res) => {
@@ -70,7 +74,7 @@ const deleteTweet = asyncHandler(async (req, res) => {
       "Tweet not found or you are not authorized to delete it"
     );
   }
-  
+
   return res
     .status(200)
     .json(new ApiResponse(200, {}, "tweet is deleted successfully"));

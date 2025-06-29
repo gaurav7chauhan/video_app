@@ -1,12 +1,11 @@
-const { Schema, default: mongoose } = require("mongoose");
-
+import { mongoose, Schema } from "mongoose";
 const tweetSchema = new Schema(
   {
     content: {
       type: String,
       required: true,
       trim: true,
-      maxlength: 280
+      maxlength: 280,
     },
     owner: {
       type: Schema.Types.ObjectId,
